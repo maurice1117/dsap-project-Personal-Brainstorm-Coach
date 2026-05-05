@@ -43,16 +43,18 @@
 ### 使用技術
 <!-- 使用的語言、框架、工具等 -->
 - **前端**
-  - HTML / CSS / JavaScript
-  - React
+  - Next.js
+  - TypeScript
   - Tailwind CSS
 - **後端**
-  - Node.js
-  - Express
+  - Next.js Route Handlers
 - **其他工具**
-  - OpenAI API 或其他大型語言模型 API，用於生成個人化專案點子與技術建議
+  - OpenAI API
   - Git / GitHub 進行版本控制
-  - Vercel 或 Render 作為部署平台
+  - Vercel
+- **可選工具**
+  - Firebase Firestore（若未來需要儲存生成紀錄）
+  - Firebase Auth（若未來需要登入功能）
 - **資料處理方式**
   1. 前端先蒐集使用者回答
   2. 後端整理成結構化資料後，傳送給 LLM
@@ -158,6 +160,7 @@
 
 ### 目前進度
 <!-- 完成了什麼 -->
+
 
 ### 遇到的困難
 <!-- 遇到什麼問題、如何解決或打算如何解決 -->

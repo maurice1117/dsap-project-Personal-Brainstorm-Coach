@@ -5,36 +5,39 @@ import { Sparkles, ArrowRight, Code, Target, Clock, Zap } from 'lucide-react';
 import ProjectCard from '@/components/ProjectCard';
 import Questionnaire, { FormData } from '@/components/Questionnaire';
 
-// Mock Data for Phase 1
-const mockProjects = [
-  {
-    style: "practical",
-    title: "個人化學習路徑追蹤器",
-    one_liner: "幫助使用者規劃與追蹤學習進度的互動式網站。",
-    summary: "使用者可以建立學習目標、拆解任務，並透過視覺化方式查看進度與下一步建議。",
-    why_it_fits: "符合你對網頁開發與 AI 工具的興趣，也能練到 React 與 API 串接。",
-    potential_concerns: "若加入太多 AI 推薦或後端功能，4 週內可能會太趕。",
-    difficulty: "medium",
-    tech_stack: ["React", "Node.js", "Express"],
-    mvp: ["建立學習目標與任務列表", "顯示進度追蹤介面", "提供簡單的推薦或提醒功能"],
-    reasoning_tags: ["web-app", "interactive", "practical", "demoable"]
-  },
-  {
-    style: "creative",
-    title: "AI 專案靈感塔羅牌",
-    one_liner: "用抽牌的趣味方式，隨機給予開發者各種瞎趴的 Side Project 靈感。",
-    summary: "結合酷炫的 CSS 動畫翻牌效果，每一張牌代表一個技術棧或情境，結合起來生成專案。",
-    why_it_fits: "想做一些有創意、好玩且可以在線上 demo 給朋友看的酷東西。",
-    potential_concerns: "技術深度較淺，主要是前端動畫的挑戰。",
-    difficulty: "easy",
-    tech_stack: ["Next.js", "Framer Motion", "Tailwind CSS"],
-    mvp: ["塔羅牌翻牌 UI", "3 張隨機技術卡片組合", "基本的分享功能"],
-    reasoning_tags: ["creative", "visual", "fun"]
-  }
-];
+
 
 export default function Home() {
   const [step, setStep] = useState<'landing' | 'form' | 'loading' | 'results'>('landing');
+  const [projects, setProjects] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateIdeas = async (data: FormData) => {
+    setStep('loading');
+    setError(null);
+    try {
+      const response = await fetch('/api/generate-ideas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate ideas');
+      }
+
+      setProjects(result.data.projects || []);
+      setStep('results');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || '發生未知錯誤，請稍後再試');
+      setStep('form'); // 若發生錯誤，退回表單讓使用者重試
+    }
+  };
 
   return (
     <main className="min-h-screen p-6 md:p-12 lg:p-24 flex flex-col items-center justify-center relative overflow-hidden">
@@ -73,14 +76,17 @@ export default function Home() {
 
         {/* Step 2: Questionnaire Form (Phase 2 State Management) */}
         {step === 'form' && (
-          <Questionnaire 
-            onCancel={() => setStep('landing')}
-            onComplete={(data: FormData) => {
-              // TODO: Phase 3 (Call Backend API with `data`)
-              console.log("Ready to send to LLM:", data);
-              setStep('loading');
-            }} 
-          />
+          <div className="w-full">
+            {error && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/50 text-red-200 text-center animate-in fade-in">
+                ⚠️ {error}
+              </div>
+            )}
+            <Questionnaire 
+              onCancel={() => setStep('landing')}
+              onComplete={generateIdeas} 
+            />
+          </div>
         )}
 
         {/* Step 3: Loading State */}
@@ -109,9 +115,13 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-1 gap-8 w-full">
-              {mockProjects.map((project, index) => (
-                <ProjectCard key={index} project={project} />
-              ))}
+              {projects.length > 0 ? (
+                projects.map((project, index) => (
+                  <ProjectCard key={index} project={project} />
+                ))
+              ) : (
+                <div className="text-center text-slate-400">無法生成專案，請重試。</div>
+              )}
             </div>
 
             <div className="mt-12 text-center">

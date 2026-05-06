@@ -2,7 +2,7 @@
 
 為了確保功能穩定並方便逐一測試，我們將後端（API 與 LLM 串接）的開發切分為以下幾個獨立模組與階段。基於專案結構，我們預期使用 **Next.js API Routes (Route Handlers)** 作為後端。
 
-## Phase 1: 基礎 API 路由與資料驗證 (Basic API Route & Input Validation)
+##  Phase 1: 基礎 API 路由與資料驗證 (Basic API Route & Input Validation)(已完成)
 **目標**：建立 API 端點，並確保收到的請求資料格式完全正確。
 * **實作項目**：
   * 建立 `POST /api/generate-ideas` 路由。

@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import OpenAI from 'openai';
+import { buildPrompt, GenerateIdeasInput } from '@/lib/promptBuilder';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // 定義符合 PROJECT_SPEC.md 的 Input Schema
 const GenerateIdeasInputSchema = z.object({
@@ -34,14 +40,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: Phase 2 - Prompt Builder
-    // TODO: Phase 3 - Call LLM API
-    
-    // 暫時回傳 200 與 Mock Data 確認 API 暢通
+    // Phase 2: 組裝 Prompt
+    const { systemPrompt, userPrompt } = buildPrompt(validatedData.data as GenerateIdeasInput);
+
+    // Phase 3 & 4: 呼叫 LLM API 並確保回傳 JSON
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    });
+
+    const llmOutput = completion.choices[0].message.content;
+
+    if (!llmOutput) {
+      throw new Error("LLM 回傳內容為空");
+    }
+
+    // 解析 JSON
+    const parsedData = JSON.parse(llmOutput);
+
     return NextResponse.json(
       { 
-        message: "Input validated successfully", 
-        data: validatedData.data 
+        message: "Success", 
+        data: parsedData 
       },
       { status: 200 }
     );

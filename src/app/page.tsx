@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sparkles, ArrowRight, Code, Target, Clock, Zap } from 'lucide-react';
 import ProjectCard from '@/components/ProjectCard';
+import Questionnaire, { FormData } from '@/components/Questionnaire';
 
 // Mock Data for Phase 1
 const mockProjects = [
@@ -70,59 +71,16 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 2: Form Skeleton (Phase 1 Mock) */}
+        {/* Step 2: Questionnaire Form (Phase 2 State Management) */}
         {step === 'form' && (
-          <div className="w-full glass-panel rounded-3xl p-8 md:p-12 animate-in slide-in-from-bottom-8 fade-in duration-500">
-            <h2 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-              告訴我你的狀況
-            </h2>
-            
-            <div className="space-y-6">
-              {/* Question 1 */}
-              <div className="space-y-3">
-                <label className="flex items-center text-lg font-medium text-slate-200">
-                  <Code className="w-5 h-5 mr-2 text-blue-400" />
-                  你對哪些技術領域感興趣？
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {['網頁前端', '後端開發', 'AI 應用', '資料分析', '遊戲開發'].map((tag) => (
-                    <button key={tag} className="px-4 py-2 rounded-full border border-slate-600 bg-slate-800/50 hover:bg-primary/30 hover:border-primary/50 transition-colors text-slate-300">
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Question 2 */}
-              <div className="space-y-3">
-                <label className="flex items-center text-lg font-medium text-slate-200">
-                  <Target className="w-5 h-5 mr-2 text-purple-400" />
-                  這次專案的目標是什麼？
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="例如：期末專題，希望能放在作品集上，要可以 Demo" 
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="mt-12 flex justify-between items-center">
-              <button 
-                onClick={() => setStep('landing')}
-                className="px-6 py-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                返回
-              </button>
-              <button 
-                onClick={() => setStep('loading')}
-                className="glass-button px-8 py-3 rounded-full font-bold text-white inline-flex items-center"
-              >
-                產生點子
-                <Zap className="ml-2 w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          <Questionnaire 
+            onCancel={() => setStep('landing')}
+            onComplete={(data: FormData) => {
+              // TODO: Phase 3 (Call Backend API with `data`)
+              console.log("Ready to send to LLM:", data);
+              setStep('loading');
+            }} 
+          />
         )}
 
         {/* Step 3: Loading State */}

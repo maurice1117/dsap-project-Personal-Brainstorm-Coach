@@ -12,6 +12,7 @@
     "src/lib/apiErrors.ts",
     "src/lib/clientApiErrors.ts",
     "src/lib/ideaOutput.ts",
+    "src/lib/savedIdeas.ts",
     "src/lib/llmRetry.ts",
     "src/lib/projectDisplay.ts",
     "tests/**/*.test.ts"

@@ -1,7 +1,7 @@
 'use client';
 
 import { CSSProperties, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Loader2, Presentation, Route, Scissors, Sparkles, Terminal, Wand2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Copy, Download, Layers, Loader2, Presentation, Route, Scissors, Sparkles, Terminal, Wand2 } from 'lucide-react';
 import type { FormData } from '@/components/Questionnaire';
 import {
   GENERATE_IDEAS_TIMEOUT_MS,
@@ -11,6 +11,7 @@ import {
 import type { ApiErrorPayload } from '@/lib/clientApiErrors';
 import type { RefineAction, RefineIdeaOutput } from '@/lib/ideaRefinement';
 import { getVisibleMvpItems, shouldShowMvpToggle } from '@/lib/projectDisplay';
+import { createMarkdownExport } from '@/lib/savedIdeas';
 
 export interface ProjectType {
   style: string;
@@ -153,18 +154,23 @@ function RefinementPanel({ refinement }: { refinement: RefineIdeaOutput }) {
 export default function ProjectCard({
   project,
   formData,
+  initialRefinement = null,
+  onRefinementChange,
 }: {
   project: ProjectType;
   formData: FormData | null;
+  initialRefinement?: RefineIdeaOutput | null;
+  onRefinementChange?: (refinement: RefineIdeaOutput) => void;
 }) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [fitExpanded, setFitExpanded] = useState(false);
   const [genericExpanded, setGenericExpanded] = useState(false);
   const [concernsExpanded, setConcernsExpanded] = useState(false);
   const [mvpExpanded, setMvpExpanded] = useState(false);
-  const [refinement, setRefinement] = useState<RefineIdeaOutput | null>(null);
+  const [refinement, setRefinement] = useState<RefineIdeaOutput | null>(initialRefinement);
   const [refineError, setRefineError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<RefineAction | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   const visibleMvpItems = getVisibleMvpItems(project.mvp, mvpExpanded);
 
@@ -218,7 +224,11 @@ export default function ProjectCard({
       }
 
       const result = await response.json();
-      setRefinement(result.data ?? null);
+      const nextRefinement = result.data ?? null;
+      setRefinement(nextRefinement);
+      if (nextRefinement) {
+        onRefinementChange?.(nextRefinement);
+      }
     } catch (err: unknown) {
       if (!isAbortError(err)) {
         console.error(err);
@@ -231,6 +241,45 @@ export default function ProjectCard({
     } finally {
       window.clearTimeout(timeoutId);
       setActiveAction(null);
+    }
+  };
+
+  const getMarkdown = () => createMarkdownExport(project, refinement);
+
+  const copyMarkdown = async () => {
+    setExportStatus(null);
+
+    if (!navigator.clipboard?.writeText) {
+      setExportStatus('此瀏覽器不支援剪貼簿功能，請改用下載 Markdown。');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(getMarkdown());
+      setExportStatus('已複製 Markdown。');
+    } catch {
+      setExportStatus('複製失敗，請稍後再試或改用下載。');
+    }
+  };
+
+  const downloadMarkdown = () => {
+    setExportStatus(null);
+
+    try {
+      const safeTitle = project.title
+        .replace(/[\\/:*?"<>|]/g, '')
+        .trim()
+        .slice(0, 40) || 'project-idea';
+      const blob = new Blob([getMarkdown()], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${safeTitle}.md`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setExportStatus('已下載 Markdown。');
+    } catch {
+      setExportStatus('下載失敗，請稍後再試。');
     }
   };
 
@@ -442,6 +491,36 @@ export default function ProjectCard({
       </div>
 
       <div className="mt-6 pt-6 border-t border-slate-700/50">
+        <div className="mb-6 rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+          <div className="mb-4 flex items-center text-slate-200">
+            <Download className="mr-2 h-5 w-5 text-green-300" />
+            <h4 className="font-bold">保存這個點子</h4>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={copyMarkdown}
+              className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800/60 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              複製 Markdown
+            </button>
+            <button
+              type="button"
+              onClick={downloadMarkdown}
+              className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800/60 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              下載 .md
+            </button>
+          </div>
+          {exportStatus && (
+            <p className="mt-3 text-sm text-slate-300" role="status">
+              {exportStatus}
+            </p>
+          )}
+        </div>
+
         <div className="flex items-center text-slate-200 mb-4">
           <Wand2 className="w-5 h-5 mr-2 text-blue-300" />
           <h4 className="font-bold">針對這個點子深入發想</h4>

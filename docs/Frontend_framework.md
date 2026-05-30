@@ -43,7 +43,7 @@
   * 確保不管 LLM 吐出多長或多短的文字，卡片高度跟排版都能自適應。
   * 點擊重新生成能順利回到表單或再次觸發 API。
 
-## Phase 5: 錯誤處理與邊界情況 (Error Handling & Edge Cases)
+## Phase 5: 錯誤處理與邊界情況 (Error Handling & Edge Cases)(已完成)
 **目標**：提升產品的強健度 (Robustness)，處理各種意外狀況。
 * **實作項目**：
   * 實作全域或局部的錯誤提示元件 (Toast 或 Alert)。

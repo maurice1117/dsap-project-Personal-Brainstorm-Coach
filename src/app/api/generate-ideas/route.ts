@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import OpenAI, {
-  APIConnectionTimeoutError,
-  AuthenticationError,
-  PermissionDeniedError,
-  RateLimitError,
-} from 'openai';
+import OpenAI from 'openai';
+import { getApiErrorBody } from '@/lib/apiErrors';
 import { parseGenerateIdeasOutput } from '@/lib/ideaOutput';
+import { generateWithOutputRetry } from '@/lib/llmRetry';
 import { buildPrompt, GenerateIdeasInput } from '@/lib/promptBuilder';
 
-const LLM_REQUEST_TIMEOUT_MS = 10_000;
+const LLM_REQUEST_TIMEOUT_MS = 30_000;
+const LLM_OUTPUT_MAX_RETRIES = 2;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -33,57 +31,8 @@ const GenerateIdeasInputSchema = z.object({
   user_notes: z.string().optional(),
 });
 
-type ErrorResponse = {
-  error: string;
-  code: string;
-  details?: unknown;
-};
-
-function errorResponse(body: ErrorResponse, status = 500) {
-  return NextResponse.json(body, { status });
-}
-
 function getServerErrorResponse(error: unknown) {
-  if (error instanceof APIConnectionTimeoutError) {
-    return errorResponse({
-      error: "LLM 回應逾時，請稍後再試。",
-      code: "LLM_TIMEOUT",
-    });
-  }
-
-  if (error instanceof AuthenticationError || error instanceof PermissionDeniedError) {
-    return errorResponse({
-      error: "LLM 服務驗證失敗，請確認 API Key 設定。",
-      code: "LLM_AUTH_ERROR",
-    });
-  }
-
-  if (error instanceof RateLimitError) {
-    return errorResponse({
-      error: "LLM 服務暫時無法使用，可能是額度不足或請求過多。",
-      code: "LLM_QUOTA_OR_RATE_LIMIT",
-    });
-  }
-
-  if (error instanceof SyntaxError) {
-    return errorResponse({
-      error: "LLM 回傳格式錯誤，請重新生成。",
-      code: "LLM_INVALID_JSON",
-    });
-  }
-
-  if (error instanceof z.ZodError) {
-    return errorResponse({
-      error: "LLM 回傳資料不符合預期格式，請重新生成。",
-      code: "LLM_INVALID_OUTPUT",
-      details: error.flatten().fieldErrors,
-    });
-  }
-
-  return errorResponse({
-    error: "伺服器發生未知錯誤，請稍後再試。",
-    code: "INTERNAL_SERVER_ERROR",
-  });
+  return NextResponse.json(getApiErrorBody(error), { status: 500 });
 }
 
 export async function POST(request: Request) {
@@ -119,28 +68,24 @@ export async function POST(request: Request) {
     // Phase 2: 組裝 Prompt
     const { systemPrompt, userPrompt } = buildPrompt(validatedData.data as GenerateIdeasInput);
 
-    // Phase 3: 呼叫 LLM API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-    }, {
-      timeout: LLM_REQUEST_TIMEOUT_MS,
-      maxRetries: 0,
+    const parsedData = await generateWithOutputRetry(async () => {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      }, {
+        timeout: LLM_REQUEST_TIMEOUT_MS,
+        maxRetries: 0,
+      });
+
+      return completion.choices[0]?.message.content;
+    }, parseGenerateIdeasOutput, {
+      maxRetries: LLM_OUTPUT_MAX_RETRIES,
     });
-
-    const llmOutput = completion.choices[0]?.message.content;
-
-    if (!llmOutput) {
-      throw new SyntaxError("LLM 回傳內容為空");
-    }
-
-    // Phase 4: 解析並驗證 LLM 回傳格式，避免不完整資料流向前端。
-    const parsedData = parseGenerateIdeasOutput(llmOutput);
 
     return NextResponse.json(
       {

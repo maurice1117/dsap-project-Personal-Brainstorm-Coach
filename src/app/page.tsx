@@ -1,14 +1,63 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, ArrowRight, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Sparkles, ArrowRight, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import ProjectCard, { ProjectType } from '@/components/ProjectCard';
 import Questionnaire, { FormData } from '@/components/Questionnaire';
+import {
+  ApiErrorPayload,
+  GENERATE_IDEAS_TIMEOUT_MS,
+  getApiStatusMessage,
+  getNetworkErrorMessage,
+} from '@/lib/clientApiErrors';
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '發生未知錯誤，請稍後再試';
+async function readApiErrorPayload(response: Response): Promise<ApiErrorPayload | null> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
+function isBrowserOnline() {
+  return typeof navigator === 'undefined' ? true : navigator.onLine;
+}
+
+class ApiResponseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiResponseError';
+  }
+}
+
+function ErrorAlert({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mb-6 flex flex-col gap-4 rounded-xl border border-red-400/50 bg-red-500/15 p-4 text-red-100 animate-in fade-in sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+        <p className="text-sm leading-relaxed">{message}</p>
+      </div>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="self-start rounded-full border border-red-300/50 px-4 py-2 text-sm font-semibold text-red-50 transition-colors hover:bg-red-400/20 sm:self-auto"
+        >
+          重試
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const [step, setStep] = useState<'landing' | 'form' | 'loading' | 'results'>('landing');
@@ -20,6 +69,18 @@ export default function Home() {
     setLastFormData(data);
     setStep('loading');
     setError(null);
+
+    if (!isBrowserOnline()) {
+      setError(getNetworkErrorMessage(new Error('offline'), false));
+      setStep('form');
+      return;
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      abortController.abort();
+    }, GENERATE_IDEAS_TIMEOUT_MS);
+
     try {
       const response = await fetch('/api/generate-ideas', {
         method: 'POST',
@@ -27,20 +88,27 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
+        signal: abortController.signal,
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate ideas');
+        const payload = await readApiErrorPayload(response);
+        throw new ApiResponseError(getApiStatusMessage(response.status, payload));
       }
 
+      const result = await response.json();
       setProjects(Array.isArray(result.data?.projects) ? result.data.projects : []);
       setStep('results');
     } catch (err: unknown) {
       console.error(err);
-      setError(getErrorMessage(err));
+      setError(
+        err instanceof ApiResponseError
+          ? err.message
+          : getNetworkErrorMessage(err, isBrowserOnline())
+      );
       setStep('form'); // 若發生錯誤，退回表單讓使用者重試
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   };
 
@@ -83,9 +151,10 @@ export default function Home() {
         {step === 'form' && (
           <div className="w-full">
             {error && (
-              <div className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/50 text-red-200 text-center animate-in fade-in">
-                ⚠️ {error}
-              </div>
+              <ErrorAlert
+                message={error}
+                onRetry={lastFormData ? () => generateIdeas(lastFormData) : undefined}
+              />
             )}
             <Questionnaire 
               onCancel={() => setStep('landing')}

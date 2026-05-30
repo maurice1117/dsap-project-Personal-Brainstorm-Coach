@@ -23,6 +23,10 @@ function isBrowserOnline() {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 class ApiResponseError extends Error {
   constructor(message: string) {
     super(message);
@@ -100,7 +104,9 @@ export default function Home() {
       setProjects(Array.isArray(result.data?.projects) ? result.data.projects : []);
       setStep('results');
     } catch (err: unknown) {
-      console.error(err);
+      if (!isAbortError(err)) {
+        console.error(err);
+      }
       setError(
         err instanceof ApiResponseError
           ? err.message
@@ -189,7 +195,7 @@ export default function Home() {
             <div className="grid grid-cols-1 gap-8 w-full">
               {projects.length > 0 ? (
                 projects.map((project, index) => (
-                  <ProjectCard key={index} project={project} />
+                  <ProjectCard key={index} project={project} formData={lastFormData} />
                 ))
               ) : (
                 <div className="text-center text-slate-400">無法生成專案，請重試。</div>

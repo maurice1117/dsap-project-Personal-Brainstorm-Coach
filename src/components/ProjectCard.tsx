@@ -1,7 +1,15 @@
 'use client';
 
 import { CSSProperties, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Presentation, Route, Scissors, Sparkles, Terminal } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Loader2, Presentation, Route, Scissors, Sparkles, Terminal, Wand2 } from 'lucide-react';
+import type { FormData } from '@/components/Questionnaire';
+import {
+  GENERATE_IDEAS_TIMEOUT_MS,
+  getApiStatusMessage,
+  getNetworkErrorMessage,
+} from '@/lib/clientApiErrors';
+import type { ApiErrorPayload } from '@/lib/clientApiErrors';
+import type { RefineAction, RefineIdeaOutput } from '@/lib/ideaRefinement';
 import { getVisibleMvpItems, shouldShowMvpToggle } from '@/lib/projectDisplay';
 
 export interface ProjectType {
@@ -30,6 +38,38 @@ const collapsedTextStyle: CSSProperties = {
   overflow: 'hidden',
 };
 
+const REFINE_ACTIONS: Array<{ action: RefineAction; label: string }> = [
+  { action: 'deep_dive', label: '深入這個點子' },
+  { action: 'make_easier', label: '降低難度' },
+  { action: 'make_creative', label: '讓它更有創意' },
+  { action: 'strengthen_ds_algo', label: '加強資料結構 / 演算法' },
+  { action: 'development_plan', label: '產生開發計畫' },
+  { action: 'report_outline', label: '產生報告大綱' },
+];
+
+async function readApiErrorPayload(response: Response): Promise<ApiErrorPayload | null> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function isBrowserOnline() {
+  return typeof navigator === 'undefined' ? true : navigator.onLine;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+class ApiResponseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiResponseError';
+  }
+}
+
 function ToggleButton({
   expanded,
   onClick,
@@ -53,12 +93,78 @@ function ToggleButton({
   );
 }
 
-export default function ProjectCard({ project }: { project: ProjectType }) {
+function RefinementPanel({ refinement }: { refinement: RefineIdeaOutput }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-blue-300/20 bg-blue-400/10 p-5 animate-in fade-in">
+      <div className="flex items-center text-blue-100 mb-3">
+        <Wand2 className="w-5 h-5 mr-2 text-blue-300" />
+        <h4 className="font-bold">{refinement.action_label}</h4>
+      </div>
+      <p className="text-sm text-slate-300 leading-relaxed mb-5">
+        {refinement.refined_summary}
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <h5 className="mb-2 text-sm font-bold text-slate-100">建議調整</h5>
+          <ul className="space-y-2">
+            {refinement.recommended_changes.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h5 className="mb-2 text-sm font-bold text-slate-100">下一步</h5>
+          <ul className="space-y-2">
+            {refinement.next_steps.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h5 className="mb-2 text-sm font-bold text-slate-100">報告大綱</h5>
+          <ul className="space-y-2">
+            {refinement.report_outline.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h5 className="mb-2 text-sm font-bold text-slate-100">取捨提醒</h5>
+          <ul className="space-y-2">
+            {refinement.tradeoffs.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectCard({
+  project,
+  formData,
+}: {
+  project: ProjectType;
+  formData: FormData | null;
+}) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [fitExpanded, setFitExpanded] = useState(false);
   const [genericExpanded, setGenericExpanded] = useState(false);
   const [concernsExpanded, setConcernsExpanded] = useState(false);
   const [mvpExpanded, setMvpExpanded] = useState(false);
+  const [refinement, setRefinement] = useState<RefineIdeaOutput | null>(null);
+  const [refineError, setRefineError] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<RefineAction | null>(null);
 
   const visibleMvpItems = getVisibleMvpItems(project.mvp, mvpExpanded);
 
@@ -71,6 +177,62 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
   const diffLabel = 
     project.difficulty === 'easy' ? '輕鬆挑戰' : 
     project.difficulty === 'medium' ? '中等難度' : '具挑戰性';
+
+  const refineProject = async (action: RefineAction) => {
+    if (!formData) {
+      setRefineError('找不到原始問卷資料，請重新生成後再深入發想。');
+      return;
+    }
+
+    setActiveAction(action);
+    setRefineError(null);
+
+    if (!isBrowserOnline()) {
+      setRefineError(getNetworkErrorMessage(new Error('offline'), false));
+      setActiveAction(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      abortController.abort();
+    }, GENERATE_IDEAS_TIMEOUT_MS);
+
+    try {
+      const response = await fetch('/api/refine-idea', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          original_input: formData,
+          project,
+          action,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const payload = await readApiErrorPayload(response);
+        throw new ApiResponseError(getApiStatusMessage(response.status, payload));
+      }
+
+      const result = await response.json();
+      setRefinement(result.data ?? null);
+    } catch (err: unknown) {
+      if (!isAbortError(err)) {
+        console.error(err);
+      }
+      setRefineError(
+        err instanceof ApiResponseError
+          ? err.message
+          : getNetworkErrorMessage(err, isBrowserOnline())
+      );
+    } finally {
+      window.clearTimeout(timeoutId);
+      setActiveAction(null);
+    }
+  };
 
   return (
     <div className="glass-panel w-full rounded-3xl p-6 md:p-8 flex flex-col relative overflow-hidden group hover:border-primary/40 transition-colors">
@@ -277,6 +439,38 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
             {project.demo_highlight}
           </p>
         </div>
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-slate-700/50">
+        <div className="flex items-center text-slate-200 mb-4">
+          <Wand2 className="w-5 h-5 mr-2 text-blue-300" />
+          <h4 className="font-bold">針對這個點子深入發想</h4>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {REFINE_ACTIONS.map(({ action, label }) => {
+            const isLoading = activeAction === action;
+            return (
+              <button
+                key={action}
+                type="button"
+                onClick={() => refineProject(action)}
+                disabled={activeAction !== null}
+                className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800/60 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {refineError && (
+          <div role="alert" className="mt-4 rounded-xl border border-red-400/40 bg-red-500/15 p-4 text-sm text-red-100">
+            {refineError}
+          </div>
+        )}
+
+        {refinement && <RefinementPanel refinement={refinement} />}
       </div>
 
     </div>

@@ -6,7 +6,7 @@ import { parseGenerateIdeasOutput } from '@/lib/ideaOutput';
 import { generateWithOutputRetry } from '@/lib/llmRetry';
 import { buildPrompt, GenerateIdeasInput } from '@/lib/promptBuilder';
 
-const LLM_REQUEST_TIMEOUT_MS = 30_000;
+const LLM_REQUEST_TIMEOUT_MS = 60_000;
 const LLM_OUTPUT_MAX_RETRIES = 2;
 
 const openai = new OpenAI({

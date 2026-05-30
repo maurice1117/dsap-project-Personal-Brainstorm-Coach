@@ -6,10 +6,16 @@ export const ProjectIdeaSchema = z.object({
   one_liner: z.string().min(1),
   summary: z.string().min(1),
   why_it_fits: z.string().min(1),
+  why_this_is_not_generic: z.string().min(1),
   potential_concerns: z.string().min(1),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   tech_stack: z.array(z.string().min(1)).min(1),
   mvp: z.array(z.string().min(1)).min(3).max(5),
+  core_algorithm_or_data_structure: z.string().min(1),
+  first_3_steps: z.array(z.string().min(1)).length(3),
+  week_plan: z.array(z.string().min(1)).min(3).max(6),
+  scope_down_plan: z.array(z.string().min(1)).min(2).max(4),
+  demo_highlight: z.string().min(1),
   reasoning_tags: z.array(z.string().min(1)).min(2).max(4),
 });
 

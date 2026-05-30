@@ -1,7 +1,7 @@
 'use client';
 
 import { CSSProperties, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Terminal } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Presentation, Route, Scissors, Sparkles, Terminal } from 'lucide-react';
 import { getVisibleMvpItems, shouldShowMvpToggle } from '@/lib/projectDisplay';
 
 export interface ProjectType {
@@ -10,10 +10,16 @@ export interface ProjectType {
   one_liner: string;
   summary: string;
   why_it_fits: string;
+  why_this_is_not_generic: string;
   potential_concerns: string;
   difficulty: string;
   tech_stack: string[];
   mvp: string[];
+  core_algorithm_or_data_structure: string;
+  first_3_steps: string[];
+  week_plan: string[];
+  scope_down_plan: string[];
+  demo_highlight: string;
   reasoning_tags: string[];
 }
 
@@ -50,6 +56,7 @@ function ToggleButton({
 export default function ProjectCard({ project }: { project: ProjectType }) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [fitExpanded, setFitExpanded] = useState(false);
+  const [genericExpanded, setGenericExpanded] = useState(false);
   const [concernsExpanded, setConcernsExpanded] = useState(false);
   const [mvpExpanded, setMvpExpanded] = useState(false);
 
@@ -125,6 +132,25 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
           />
         </div>
 
+        <div className="bg-slate-900/40 rounded-2xl p-5 border border-slate-700/50">
+          <div className="flex items-center text-purple-300 mb-3">
+            <Sparkles className="w-5 h-5 mr-2" />
+            <h4 className="font-bold">不是普通題目的原因</h4>
+          </div>
+          <p
+            className="text-sm text-slate-300 leading-relaxed"
+            style={genericExpanded ? undefined : collapsedTextStyle}
+          >
+            {project.why_this_is_not_generic}
+          </p>
+          <ToggleButton
+            expanded={genericExpanded}
+            onClick={() => setGenericExpanded((current) => !current)}
+            openLabel="展開差異化"
+            closeLabel="收合差異化"
+          />
+        </div>
+
         {/* Potential Concerns */}
         <div className="bg-slate-900/40 rounded-2xl p-5 border border-slate-700/50">
           <div className="flex items-center text-yellow-400 mb-3">
@@ -144,6 +170,16 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
             closeLabel="收合挑戰"
           />
         </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-indigo-400/20 bg-indigo-400/10 p-5">
+        <div className="flex items-center text-indigo-200 mb-3">
+          <Route className="w-5 h-5 mr-2 text-indigo-300" />
+          <h4 className="font-bold">核心資料結構 / 演算法</h4>
+        </div>
+        <p className="text-sm text-slate-300 leading-relaxed">
+          {project.core_algorithm_or_data_structure}
+        </p>
       </div>
 
       {/* Tech Stack & MVP */}
@@ -186,6 +222,61 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
           )}
         </div>
 
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-slate-700/50 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <div className="flex items-center text-slate-200 mb-3">
+            <CheckCircle2 className="w-5 h-5 mr-2 text-green-400" />
+            <h4 className="font-bold">前三個實作步驟</h4>
+          </div>
+          <ol className="space-y-2">
+            {project.first_3_steps.map((step, i) => (
+              <li key={`${i}-${step}`} className="flex items-start text-sm text-slate-300">
+                <span className="text-green-400 font-bold mr-2">{i + 1}.</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div>
+          <div className="flex items-center text-slate-200 mb-3">
+            <Layers className="w-5 h-5 mr-2 text-blue-400" />
+            <h4 className="font-bold">分週開發計畫</h4>
+          </div>
+          <ul className="space-y-2">
+            {project.week_plan.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <div className="flex items-center text-slate-200 mb-3">
+            <Scissors className="w-5 h-5 mr-2 text-yellow-400" />
+            <h4 className="font-bold">時間不夠時先砍這些</h4>
+          </div>
+          <ul className="space-y-2">
+            {project.scope_down_plan.map((item, i) => (
+              <li key={`${i}-${item}`} className="text-sm text-slate-300 leading-relaxed">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-pink-400/20 bg-pink-400/10 p-5">
+          <div className="flex items-center text-pink-200 mb-3">
+            <Presentation className="w-5 h-5 mr-2 text-pink-300" />
+            <h4 className="font-bold">Demo 展示亮點</h4>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            {project.demo_highlight}
+          </p>
+        </div>
       </div>
 
     </div>

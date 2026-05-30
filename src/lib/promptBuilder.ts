@@ -29,7 +29,11 @@ export function buildPrompt(input: GenerateIdeasInput): { systemPrompt: string; 
 1. 你的提案必須高度個人化，不能給出千篇一律的無聊系統（例如單純的 To-Do list、普通的部落格）。
 2. 提案必須要有亮點、能夠作為作品集展示。
 3. 根據使用者提供的時間限制（time_scope）與程式經驗（experience_level），評估專案可行性。
-4. 必須嚴格以 JSON 格式回應，且符合指定的 Output Schema。
+4. 每個提案必須至少明確引用 2 個使用者輸入條件，例如興趣、避免方向、成功標準、資料來源、課程要求。
+5. 三個提案在使用情境、技術亮點、資料結構或演算法上必須有明顯差異。
+6. 不要把登入/註冊當作預設 MVP，除非該題目沒有帳號就無法成立。
+7. 若題目看起來像常見題，必須在 why_this_is_not_generic 說明差異化設計。
+8. 必須嚴格以 JSON 格式回應，且符合指定的 Output Schema。
 
 【Output Schema 規定】
 你必須回傳一個 JSON Object，包含一個 "projects" 陣列，陣列中必須精準包含 3 個不同風格的專案提案。
@@ -42,10 +46,16 @@ export function buildPrompt(input: GenerateIdeasInput): { systemPrompt: string; 
       "one_liner": "string", // 一句話介紹專案核心概念
       "summary": "string", // 1-2 段的詳細介紹
       "why_it_fits": "string", // 解釋為什麼這個點子適合該使用者（基於其興趣與目標）
+      "why_this_is_not_generic": "string", // 說明這個題目如何避免變成普通通用題，必須提到具體差異化設計
       "potential_concerns": "string", // 實作上可能的風險或挑戰（如時間不夠、技術門檻高）
       "difficulty": "string", // 難度評估：僅能填 "easy", "medium", 或 "hard"
       "tech_stack": ["string"], // 建議使用的技術陣列
       "mvp": ["string"], // MVP (最小可行產品) 需要完成的 3-5 項核心功能
+      "core_algorithm_or_data_structure": "string", // 核心資料結構或演算法，以及它為什麼自然適合這個專案
+      "first_3_steps": ["string"], // 使用者開始實作前 3 個具體步驟，必須精準 3 項
+      "week_plan": ["string"], // 3-6 項分週開發計畫，需符合使用者總週數與每週時數
+      "scope_down_plan": ["string"], // 2-4 項時間不夠時可刪減的範圍
+      "demo_highlight": "string", // 現場展示或作品集 demo 時最值得強調的一段流程
       "reasoning_tags": ["string"] // 2-4 個能代表專案特性的標籤（例如 "web-app", "ai-integration"）
     }
   ]

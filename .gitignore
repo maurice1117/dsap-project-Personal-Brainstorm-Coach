@@ -45,4 +45,5 @@ node_modules/
 .next/
 out/
 build/
+.test-build/
 .env*.local

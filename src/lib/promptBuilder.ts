@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 // 定義與 API 接收相同的 Input 型別
 export interface GenerateIdeasInput {
   project_context: string;

@@ -33,7 +33,7 @@
   * 啟動本地後端伺服器進行串接測試（若後端尚未完成，可先用 `setTimeout` 模擬 5 秒的延遲與假的 API 回應）。
   * 觀察 Loading 動畫是否如預期出現並消失。
 
-## Phase 4: 資料渲染與細節互動 (Data Rendering & Interaction)
+## Phase 4: 資料渲染與細節互動 (Data Rendering & Interaction)(已完成)
 **目標**：完美呈現 LLM 生成的內容，並提供使用者進一步的操作。
 * **實作項目**：
   * 將 API 拿到的真實 `projects` 陣列，動態 mapping 到 Phase 1 做的「專案卡片」元件上。

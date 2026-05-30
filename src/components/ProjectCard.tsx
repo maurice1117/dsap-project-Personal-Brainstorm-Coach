@@ -1,6 +1,10 @@
-import { CheckCircle2, AlertTriangle, Layers, Zap, Terminal } from 'lucide-react';
+'use client';
 
-interface ProjectType {
+import { CSSProperties, useState } from 'react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Layers, Terminal } from 'lucide-react';
+import { getVisibleMvpItems, shouldShowMvpToggle } from '@/lib/projectDisplay';
+
+export interface ProjectType {
   style: string;
   title: string;
   one_liner: string;
@@ -13,7 +17,44 @@ interface ProjectType {
   reasoning_tags: string[];
 }
 
+const collapsedTextStyle: CSSProperties = {
+  display: '-webkit-box',
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+};
+
+function ToggleButton({
+  expanded,
+  onClick,
+  openLabel = '展開',
+  closeLabel = '收合',
+}: {
+  expanded: boolean;
+  onClick: () => void;
+  openLabel?: string;
+  closeLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-3 inline-flex items-center text-sm font-medium text-primary hover:text-blue-300 transition-colors"
+    >
+      {expanded ? closeLabel : openLabel}
+      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+    </button>
+  );
+}
+
 export default function ProjectCard({ project }: { project: ProjectType }) {
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [fitExpanded, setFitExpanded] = useState(false);
+  const [concernsExpanded, setConcernsExpanded] = useState(false);
+  const [mvpExpanded, setMvpExpanded] = useState(false);
+
+  const visibleMvpItems = getVisibleMvpItems(project.mvp, mvpExpanded);
+
   // Map difficulty to color
   const diffColor = 
     project.difficulty === 'easy' ? 'text-green-400 bg-green-400/10 border-green-400/20' : 
@@ -49,9 +90,18 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
         <p className="text-lg text-slate-300 font-medium border-l-4 border-secondary pl-4 py-1 mb-4">
           {project.one_liner}
         </p>
-        <p className="text-slate-400 leading-relaxed">
+        <p
+          className="text-slate-400 leading-relaxed"
+          style={summaryExpanded ? undefined : collapsedTextStyle}
+        >
           {project.summary}
         </p>
+        <ToggleButton
+          expanded={summaryExpanded}
+          onClick={() => setSummaryExpanded((current) => !current)}
+          openLabel="展開完整介紹"
+          closeLabel="收合介紹"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 mb-6">
@@ -61,7 +111,18 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
             <CheckCircle2 className="w-5 h-5 mr-2" />
             <h4 className="font-bold">為什麼適合你</h4>
           </div>
-          <p className="text-sm text-slate-300">{project.why_it_fits}</p>
+          <p
+            className="text-sm text-slate-300 leading-relaxed"
+            style={fitExpanded ? undefined : collapsedTextStyle}
+          >
+            {project.why_it_fits}
+          </p>
+          <ToggleButton
+            expanded={fitExpanded}
+            onClick={() => setFitExpanded((current) => !current)}
+            openLabel="展開原因"
+            closeLabel="收合原因"
+          />
         </div>
 
         {/* Potential Concerns */}
@@ -70,7 +131,18 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
             <AlertTriangle className="w-5 h-5 mr-2" />
             <h4 className="font-bold">可能挑戰與限制</h4>
           </div>
-          <p className="text-sm text-slate-300">{project.potential_concerns}</p>
+          <p
+            className="text-sm text-slate-300 leading-relaxed"
+            style={concernsExpanded ? undefined : collapsedTextStyle}
+          >
+            {project.potential_concerns}
+          </p>
+          <ToggleButton
+            expanded={concernsExpanded}
+            onClick={() => setConcernsExpanded((current) => !current)}
+            openLabel="展開挑戰"
+            closeLabel="收合挑戰"
+          />
         </div>
       </div>
 
@@ -97,13 +169,21 @@ export default function ProjectCard({ project }: { project: ProjectType }) {
             <h4 className="font-bold">MVP 最小可行版本規劃</h4>
           </div>
           <ul className="space-y-2">
-            {project.mvp.map((item, i) => (
+            {visibleMvpItems.map((item, i) => (
               <li key={i} className="flex items-start text-sm text-slate-300">
                 <span className="text-purple-400 font-bold mr-2">{i + 1}.</span>
                 {item}
               </li>
             ))}
           </ul>
+          {shouldShowMvpToggle(project.mvp) && (
+            <ToggleButton
+              expanded={mvpExpanded}
+              onClick={() => setMvpExpanded((current) => !current)}
+              openLabel={`展開全部 ${project.mvp.length} 項 MVP`}
+              closeLabel="收合 MVP"
+            />
+          )}
         </div>
 
       </div>

@@ -1,18 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, ArrowRight, Code, Target, Clock, Zap } from 'lucide-react';
-import ProjectCard from '@/components/ProjectCard';
+import { Sparkles, ArrowRight, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import ProjectCard, { ProjectType } from '@/components/ProjectCard';
 import Questionnaire, { FormData } from '@/components/Questionnaire';
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '發生未知錯誤，請稍後再試';
+}
 
 
 export default function Home() {
   const [step, setStep] = useState<'landing' | 'form' | 'loading' | 'results'>('landing');
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectType[]>([]);
+  const [lastFormData, setLastFormData] = useState<FormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const generateIdeas = async (data: FormData) => {
+    setLastFormData(data);
     setStep('loading');
     setError(null);
     try {
@@ -30,11 +35,11 @@ export default function Home() {
         throw new Error(result.error || 'Failed to generate ideas');
       }
 
-      setProjects(result.data.projects || []);
+      setProjects(Array.isArray(result.data?.projects) ? result.data.projects : []);
       setStep('results');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || '發生未知錯誤，請稍後再試');
+      setError(getErrorMessage(err));
       setStep('form'); // 若發生錯誤，退回表單讓使用者重試
     }
   };
@@ -99,8 +104,6 @@ export default function Home() {
               <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-purple-300 animate-pulse" />
             </div>
             <p className="text-xl font-medium text-slate-300 animate-pulse">正在為你打造專屬的專案靈感...</p>
-            {/* Auto advance to results for demo purposes */}
-            <button onClick={() => setStep('results')} className="text-xs text-slate-600 hover:text-slate-400 mt-8">(點此跳過動畫)</button>
           </div>
         )}
 
@@ -124,12 +127,21 @@ export default function Home() {
               )}
             </div>
 
-            <div className="mt-12 text-center">
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => lastFormData && generateIdeas(lastFormData)}
+                disabled={!lastFormData}
+                className="glass-button px-8 py-3 rounded-full font-bold text-white inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="mr-2 w-5 h-5" />
+                重新生成
+              </button>
               <button 
                 onClick={() => setStep('form')}
-                className="glass-button px-8 py-3 rounded-full font-bold text-white inline-flex items-center"
+                className="px-8 py-3 rounded-full font-bold text-slate-200 border border-slate-600 bg-slate-800/60 hover:bg-slate-700 inline-flex items-center transition-colors"
               >
-                重新發想
+                <SlidersHorizontal className="mr-2 w-5 h-5" />
+                修改條件
               </button>
             </div>
           </div>

@@ -31,7 +31,7 @@
   * 在環境變數設定 API Key。
   * 使用一組寫死的 Input 呼叫這支 API，確認能從 LLM 拿到文字回應（不論格式是否完美）。
 
-## Phase 4: Output 驗證與例外處理 (Output Validation & Error Handling)
+## Phase 4: Output 驗證與例外處理 (Output Validation & Error Handling)(已完成)
 **目標**：確保回傳給前端的資料是安全、穩定且格式一致的。
 * **實作項目**：
   * 解析 LLM 回傳的字串 (`JSON.parse`)。

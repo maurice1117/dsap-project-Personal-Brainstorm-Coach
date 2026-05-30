@@ -34,7 +34,7 @@ export default function Questionnaire({ onComplete, onCancel }: Props) {
     goal: ''
   });
 
-  const updateData = (field: keyof FormData, value: any) => {
+  const updateData = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

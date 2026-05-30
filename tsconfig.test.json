@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": ".test-build",
+    "noEmit": false,
+    "incremental": false,
+    "isolatedModules": false
+  },
+  "include": [
+    "src/lib/ideaOutput.ts",
+    "src/lib/projectDisplay.ts",
+    "tests/**/*.test.ts"
+  ]
+}

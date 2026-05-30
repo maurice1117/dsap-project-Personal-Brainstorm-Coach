@@ -5,6 +5,12 @@ export interface GenerateIdeasInput {
   experience_level: string;
   focus_skills: string[];
   preferred_tech?: string[];
+  avoid_topics?: string[];
+  target_users?: string;
+  data_sources?: string[];
+  success_criteria?: string[];
+  preferred_output?: string;
+  course_requirements?: string[];
   time_scope: {
     duration_weeks: number;
     hours_per_week: number;
@@ -56,6 +62,12 @@ export function buildPrompt(input: GenerateIdeasInput): { systemPrompt: string; 
 - 興趣領域 (Interests): ${input.interests.join(', ')}
 - 想加強的技能 (Focus Skills): ${input.focus_skills.join(', ')}
 ${input.preferred_tech && input.preferred_tech.length > 0 ? `- 偏好技術棧: ${input.preferred_tech.join(', ')}\n` : ''}
+${input.avoid_topics && input.avoid_topics.length > 0 ? `- 不想做的類型或技術: ${input.avoid_topics.join(', ')}\n` : ''}
+${input.target_users ? `- 主要目標使用者: ${input.target_users}\n` : ''}
+${input.data_sources && input.data_sources.length > 0 ? `- 可用資料來源: ${input.data_sources.join(', ')}\n` : ''}
+${input.success_criteria && input.success_criteria.length > 0 ? `- 成功標準: ${input.success_criteria.join(', ')}\n` : ''}
+${input.preferred_output ? `- 偏好成果形式: ${input.preferred_output}\n` : ''}
+${input.course_requirements && input.course_requirements.length > 0 ? `- 課程要求或必須展示的概念: ${input.course_requirements.join(', ')}\n` : ''}
 - 時間限制 (Time Scope): 總共 ${input.time_scope.duration_weeks} 週，每週約投入 ${input.time_scope.hours_per_week} 小時
 - 專案目標 (Goal): ${input.goal}
 ${input.constraints && input.constraints.length > 0 ? `- 其他限制 (Constraints): ${input.constraints.join(', ')}\n` : ''}

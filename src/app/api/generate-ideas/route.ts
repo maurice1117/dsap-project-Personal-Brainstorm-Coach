@@ -22,6 +22,12 @@ const GenerateIdeasInputSchema = z.object({
   experience_level: z.string().min(1, "Experience level is required"),
   focus_skills: z.array(z.string()).min(1, "At least one focus skill is required"),
   preferred_tech: z.array(z.string()).optional(),
+  avoid_topics: z.array(z.string()).optional(),
+  target_users: z.string().optional(),
+  data_sources: z.array(z.string()).optional(),
+  success_criteria: z.array(z.string()).optional(),
+  preferred_output: z.string().optional(),
+  course_requirements: z.array(z.string()).optional(),
   time_scope: z.object({
     duration_weeks: z.number().min(1),
     hours_per_week: z.number().min(1),

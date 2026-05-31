@@ -60,6 +60,7 @@ function buildRefinePrompt(input: {
 
 【任務】
 根據使用者原始條件、目前選中的專案，以及指定的深入操作，產生一份可直接幫助使用者下一步決策與實作的 refinement。
+所有使用者可見的文字內容都必須使用繁體中文；除非是特定術語、技術名詞、套件名稱、API 名稱、欄位名稱或程式碼識別字，才可以保留英文。
 
 【操作意圖】
 - 深入這個點子：補足產品情境、核心功能與實作重點。
@@ -86,7 +87,7 @@ function buildRefinePrompt(input: {
 - report_outline: 3-6 項
 - tradeoffs: 1-4 項
 
-請直接輸出合法 JSON，不要包含 Markdown code block。
+請直接輸出合法 JSON，不要包含 Markdown code block。JSON 欄位名稱維持英文 schema，但欄位值中的使用者可見文字必須使用繁體中文；只有特定術語可保留英文。
 `.trim();
 
   const userPrompt = `
@@ -98,7 +99,7 @@ ${JSON.stringify(input.original_input, null, 2)}
 【目前選中的專案】
 ${JSON.stringify(input.project, null, 2)}
 
-請讓回覆符合這次操作的意圖，並保留專案的使用者條件、時間限制與課程要求。
+請讓回覆符合這次操作的意圖，並保留專案的使用者條件、時間限制與課程要求。所有使用者可見文字請使用繁體中文。
 `.trim();
 
   return { systemPrompt, userPrompt };

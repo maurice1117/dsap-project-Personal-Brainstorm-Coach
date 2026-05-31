@@ -47,3 +47,5 @@ out/
 build/
 .test-build/
 .env*.local
+
+.vercel
